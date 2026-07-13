@@ -9,6 +9,7 @@
     <!-- Envío oficial: mediaciononline@jusbaires.gob.ar -->
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="vendor/msal-browser.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
         .step-active { display: block; animation: fadeIn 0.4s ease-in-out; }
@@ -48,7 +49,7 @@
                 <p class="text-slate-600 mb-8 leading-relaxed text-lg">
                     La Resolución CM Nº 65/2020 habilitó la tramitación remota de las causas y el MEMO 77-2020
                     reglamenta el sistema de virtualidad en las mediaciones. Esta herramienta ordena los datos y
-                    prepara un correo; el envío siempre se confirma desde la aplicación de correo de la persona usuaria.
+                    permite enviar la solicitud desde esta plataforma utilizando la cuenta institucional de la persona usuaria.
                 </p>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -64,8 +65,8 @@
                     </div>
                     <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
                         <p class="text-sm font-semibold text-blue-700 mb-2">3. Confirme</p>
-                        <h3 class="text-lg font-medium text-slate-800 mb-2">Correo preparado</h3>
-                        <p class="text-sm text-slate-600">La plataforma abre un borrador. Revise destinatario y contenido, y envíelo desde su correo institucional.</p>
+                        <h3 class="text-lg font-medium text-slate-800 mb-2">Envío institucional</h3>
+                        <p class="text-sm text-slate-600">Inicie sesión con Microsoft 365, confirme el destinatario y envíe la solicitud desde la misma plataforma.</p>
                     </div>
                 </div>
             </div>
@@ -77,11 +78,11 @@
                 <h2 class="text-3xl font-semibold text-slate-800 mb-4">Asistente Interactivo de Solicitud</h2>
                 <p class="text-slate-600 leading-relaxed text-lg">
                     Complete los cuatro pasos con los datos exigidos por el protocolo de actuación. El sistema
-                    genera en tiempo real el texto de la solicitud y prepara un borrador dirigido a
+                    genera en tiempo real el texto de la solicitud y permite enviarlo directamente a
                     <strong data-recipient></strong>.
                 </p>
                 <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-                    <strong>Importante:</strong> la página no envía datos automáticamente. Al finalizar abrirá su aplicación de correo para que usted revise y confirme el envío.
+                    <strong>Envío seguro:</strong> Microsoft 365 solicitará iniciar sesión con una cuenta institucional. La plataforma sólo enviará después de la confirmación expresa de la persona usuaria.
                 </div>
             </div>
 
@@ -253,13 +254,27 @@
                         <div id="checklist" class="px-5 py-3 border-b border-slate-100 text-xs space-y-1" role="status" aria-live="polite"></div>
                         <pre id="preview" class="custom-scrollbar whitespace-pre-wrap font-mono text-xs text-slate-700 p-5 max-h-[50vh] overflow-y-auto leading-relaxed" tabindex="0" aria-label="Vista previa de la solicitud"></pre>
                     </div>
+                    <div class="rounded-xl border border-slate-200 bg-white p-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cuenta de envío</p>
+                                <p id="authStatus" class="text-sm text-slate-700" aria-live="polite">Comprobando sesión institucional…</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" id="btnSignIn" class="hidden px-3 py-2 rounded-lg border border-blue-300 text-blue-700 font-medium hover:bg-blue-50 text-sm">Iniciar sesión</button>
+                                <button type="button" id="btnSignOut" class="hidden px-3 py-2 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 text-sm">Cerrar sesión</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="btnSend" class="w-full px-4 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors text-sm">Enviar solicitud</button>
+                    <div id="sendStatus" class="hidden rounded-lg border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
                     <div class="flex gap-3">
                         <button type="button" id="btnCopy" class="flex-1 px-4 py-3 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors text-sm">Copiar texto</button>
-                        <button type="button" id="btnMail" class="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors text-sm text-center">Preparar correo</button>
+                        <button type="button" id="btnMail" class="flex-1 px-4 py-3 rounded-lg border border-blue-300 bg-white text-blue-700 font-medium hover:bg-blue-50 transition-colors text-sm text-center">Abrir en correo</button>
                     </div>
                     <p class="text-xs text-slate-500 leading-relaxed">
                         Protocolo de actuación previsto en la Res. CM Nº 65/2020 y MEMO 77-2020. Los datos ingresados
-                        permanecen en esta pestaña y no se guardan en el sitio.
+                        permanecen en esta pestaña y se transmiten a Microsoft Graph únicamente al confirmar el envío.
                     </p>
                 </div>
             </div>
@@ -279,8 +294,133 @@
         var TOTAL_STEPS = 4;
         var partyCount = 0;
         var RECIPIENT_EMAIL = 'mediaciononline@jusbaires.gob.ar';
+        var ENTRA_CLIENT_ID = '9b1ba58a-5fc4-4f13-934e-4656c54dd821';
+        var ENTRA_TENANT_ID = '8e643b8b-b7de-4008-8503-d74eb8b64e7e';
+        var REDIRECT_URI = 'https://tegralan.github.io/MEDIACION/';
+        var GRAPH_SEND_MAIL_ENDPOINT = 'https://graph.microsoft.com/v1.0/me/sendMail';
+        var GRAPH_SCOPES = ['User.Read', 'Mail.Send'];
+        var msalClient = null;
+        var sentContent = null;
 
         var $ = function (id) { return document.getElementById(id); };
+
+        /* ---------- Autenticación institucional ---------- */
+        function currentAccount() {
+            if (!msalClient) return null;
+            return msalClient.getActiveAccount() || msalClient.getAllAccounts()[0] || null;
+        }
+
+        function updateAuthUI(account, errorMessage) {
+            if (errorMessage) {
+                $('authStatus').textContent = errorMessage;
+                $('authStatus').className = 'text-sm text-red-700';
+                $('btnSignIn').classList.remove('hidden');
+                $('btnSignOut').classList.add('hidden');
+                return;
+            }
+            if (account) {
+                $('authStatus').textContent = 'Sesión iniciada: ' + account.username;
+                $('authStatus').className = 'text-sm font-medium text-green-700';
+                $('btnSignIn').classList.add('hidden');
+                $('btnSignOut').classList.remove('hidden');
+            } else {
+                $('authStatus').textContent = 'Inicie sesión con su cuenta @jusbaires.gob.ar para enviar.';
+                $('authStatus').className = 'text-sm text-slate-700';
+                $('btnSignIn').classList.remove('hidden');
+                $('btnSignOut').classList.add('hidden');
+            }
+        }
+
+        async function initializeAuthentication() {
+            if (typeof msal === 'undefined') {
+                updateAuthUI(null, 'No se pudo cargar la autenticación de Microsoft. Recargue la página.');
+                $('btnSend').disabled = true;
+                return;
+            }
+            try {
+                msalClient = new msal.PublicClientApplication({
+                    auth: {
+                        clientId: ENTRA_CLIENT_ID,
+                        authority: 'https://login.microsoftonline.com/' + ENTRA_TENANT_ID,
+                        redirectUri: REDIRECT_URI,
+                        postLogoutRedirectUri: REDIRECT_URI,
+                        navigateToLoginRequestUrl: false
+                    },
+                    cache: {
+                        cacheLocation: 'sessionStorage',
+                        storeAuthStateInCookie: false
+                    }
+                });
+                await msalClient.initialize();
+                var account = currentAccount();
+                if (account) msalClient.setActiveAccount(account);
+                updateAuthUI(account);
+            } catch (error) {
+                updateAuthUI(null, 'No se pudo iniciar Microsoft 365. Recargue la página.');
+                $('btnSend').disabled = true;
+            }
+        }
+
+        async function signIn() {
+            if (!msalClient) {
+                updateAuthUI(null, 'Microsoft 365 todavía no está disponible. Recargue la página.');
+                return null;
+            }
+            $('btnSignIn').disabled = true;
+            $('authStatus').textContent = 'Abriendo inicio de sesión de Microsoft 365…';
+            try {
+                var response = await msalClient.loginPopup({
+                    scopes: GRAPH_SCOPES,
+                    prompt: 'select_account'
+                });
+                msalClient.setActiveAccount(response.account);
+                updateAuthUI(response.account);
+                return response.account;
+            } catch (error) {
+                var cancelled = error && (error.errorCode === 'user_cancelled' || error.errorCode === 'popup_window_error');
+                updateAuthUI(null, cancelled
+                    ? 'Inicio de sesión cancelado. Puede volver a intentarlo.'
+                    : 'No se pudo iniciar sesión. Verifique su cuenta institucional.');
+                return null;
+            } finally {
+                $('btnSignIn').disabled = false;
+            }
+        }
+
+        async function accessTokenForMail(account) {
+            var request = { scopes: GRAPH_SCOPES, account: account };
+            try {
+                return (await msalClient.acquireTokenSilent(request)).accessToken;
+            } catch (error) {
+                return (await msalClient.acquireTokenPopup(request)).accessToken;
+            }
+        }
+
+        async function signOut() {
+            var account = currentAccount();
+            if (!account || !msalClient) return;
+            try {
+                await msalClient.logoutPopup({
+                    account: account,
+                    postLogoutRedirectUri: REDIRECT_URI
+                });
+                msalClient.setActiveAccount(null);
+                updateAuthUI(null);
+            } catch (error) {
+                setSendStatus('error', 'No se pudo cerrar la sesión. Cierre esta pestaña al terminar.');
+            }
+        }
+
+        function setSendStatus(type, message) {
+            var box = $('sendStatus');
+            var success = type === 'success';
+            var info = type === 'info';
+            box.className = 'rounded-lg border px-4 py-3 text-sm ' +
+                (success
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : (info ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-red-200 bg-red-50 text-red-800'));
+            box.textContent = message;
+        }
 
         /* ---------- Navegación superior ---------- */
         function showSection(name) {
@@ -404,7 +544,7 @@
                 goToStep(currentStep + 1);
             } else {
                 updatePreview();
-                showMessage('success', 'La solicitud está lista. Revise la vista previa y luego seleccione “Preparar correo”.');
+                showMessage('success', 'La solicitud está lista. Revise la vista previa y luego seleccione “Enviar solicitud”.');
                 $('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         });
@@ -548,7 +688,86 @@
             }
 
             $('btnMail').setAttribute('aria-describedby', 'checklist');
+            $('btnSend').setAttribute('aria-describedby', 'checklist');
         }
+
+        async function sendForm() {
+            var details = getMissingDetails();
+            if (details.length) {
+                goToStep(details[0].step);
+                showValidation(details.filter(function (item) { return item.step === details[0].step; }));
+                return;
+            }
+
+            var account = currentAccount() || await signIn();
+            if (!account) return;
+
+            var confirmed = window.confirm(
+                'Se enviará la solicitud desde ' + account.username + ' a ' + RECIPIENT_EMAIL + '.\n\n¿Confirma el envío?'
+            );
+            if (!confirmed) {
+                setSendStatus('error', 'El envío fue cancelado. No se transmitió ningún dato.');
+                return;
+            }
+
+            var button = $('btnSend');
+            var originalLabel = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Enviando…';
+            setSendStatus('info', 'Enviando la solicitud mediante Microsoft 365…');
+
+            try {
+                var token = await accessTokenForMail(account);
+                var text = buildText();
+                var response = await fetch(GRAPH_SEND_MAIL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: {
+                            subject: 'Solicitud de mediación - ' + val('caratula'),
+                            body: {
+                                contentType: 'Text',
+                                content: text
+                            },
+                            toRecipients: [{
+                                emailAddress: { address: RECIPIENT_EMAIL }
+                            }]
+                        },
+                        saveToSentItems: true
+                    })
+                });
+
+                if (response.status !== 202) {
+                    var graphError = null;
+                    try { graphError = await response.json(); } catch (ignore) { graphError = null; }
+                    var code = graphError && graphError.error && graphError.error.code;
+                    if (response.status === 403) throw new Error('permission');
+                    if (response.status === 401) throw new Error('authentication');
+                    throw new Error(code || 'graph');
+                }
+
+                sentContent = text;
+                button.textContent = '✓ Solicitud enviada';
+                setSendStatus('success', 'Microsoft 365 aceptó el envío. El mensaje quedó registrado en la carpeta “Enviados” de ' + account.username + '.');
+            } catch (error) {
+                button.disabled = false;
+                button.textContent = originalLabel;
+                if (error && error.message === 'permission') {
+                    setSendStatus('error', 'Microsoft 365 rechazó el permiso de envío. Cierre sesión, vuelva a ingresar y acepte Mail.Send.');
+                } else if (error && error.message === 'authentication') {
+                    setSendStatus('error', 'La sesión venció. Cierre sesión e ingrese nuevamente antes de reintentar.');
+                } else {
+                    setSendStatus('error', 'No se pudo enviar la solicitud. No vuelva a presionar el botón hasta verificar su conexión; también puede usar “Abrir en correo”.');
+                }
+            }
+        }
+
+        $('btnSignIn').addEventListener('click', signIn);
+        $('btnSignOut').addEventListener('click', signOut);
+        $('btnSend').addEventListener('click', sendForm);
 
         $('btnMail').addEventListener('click', function () {
             var details = getMissingDetails();
@@ -561,7 +780,7 @@
             var mailto = 'mailto:' + RECIPIENT_EMAIL +
                 '?subject=' + encodeURIComponent(subject) +
                 '&body=' + encodeURIComponent(buildText());
-            showMessage('success', 'Se abrirá un borrador en su aplicación de correo. El envío no es automático.');
+            showMessage('success', 'Se abrirá un borrador como alternativa manual. Revise el contenido antes de enviarlo.');
             window.location.href = mailto;
         });
 
@@ -585,12 +804,22 @@
             }
         });
 
+        function resetSentStateIfEdited() {
+            if (sentContent !== null && buildText() !== sentContent) {
+                sentContent = null;
+                $('btnSend').disabled = false;
+                $('btnSend').textContent = 'Enviar solicitud';
+                $('sendStatus').classList.add('hidden');
+            }
+        }
+
         /* ---------- Actualización en tiempo real ---------- */
         document.addEventListener('input', function (e) {
             if (e.target.closest('#mediationForm')) {
                 e.target.classList.remove('field-error');
                 e.target.removeAttribute('aria-invalid');
                 updatePreview();
+                resetSentStateIfEdited();
             }
         });
         document.addEventListener('change', function (e) {
@@ -598,6 +827,7 @@
                 e.target.classList.remove('field-error');
                 e.target.removeAttribute('aria-invalid');
                 updatePreview();
+                resetSentStateIfEdited();
             }
         });
 
@@ -605,6 +835,7 @@
         document.querySelectorAll('[data-recipient]').forEach(function (element) {
             element.textContent = RECIPIENT_EMAIL;
         });
+        initializeAuthentication();
         addParty(); // Requiriente
         addParty(); // Requerida
         goToStep(1);
