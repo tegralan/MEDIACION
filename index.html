@@ -9,25 +9,12 @@
     <!-- Envío oficial: mediaciononline@jusbaires.gob.ar -->
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <script src="vendor/msal-browser.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 30vh;
-            max-height: 350px;
-            min-height: 250px;
-        }
-        @media (min-width: 768px) {
-            .chart-container { height: 40vh; }
-        }
         .step-active { display: block; animation: fadeIn 0.4s ease-in-out; }
         .step-hidden { display: none; }
+        .field-error { border-color: #dc2626 !important; box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.14); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -47,8 +34,8 @@
                 <h1 class="text-lg sm:text-xl font-bold tracking-wide">Plataforma de Mediación Remota</h1>
             </div>
             <div class="flex space-x-4 sm:space-x-6 text-sm font-medium">
-                <button id="navDashboard" class="nav-btn hover:text-blue-400 transition-colors pb-1 border-b-2 border-transparent">Panel de Datos</button>
-                <button id="navWizard" class="nav-btn hover:text-blue-400 transition-colors pb-1 text-blue-400 border-b-2 border-blue-400">Asistente de Solicitud</button>
+                <button type="button" id="navDashboard" class="nav-btn hover:text-blue-400 transition-colors pb-1 border-b-2 border-transparent">Información</button>
+                <button type="button" id="navWizard" class="nav-btn hover:text-blue-400 transition-colors pb-1 text-blue-400 border-b-2 border-blue-400">Asistente de Solicitud</button>
             </div>
         </div>
     </nav>
@@ -58,27 +45,28 @@
         <!-- ================= DASHBOARD ================= -->
         <section id="sectionDashboard" class="w-full max-w-7xl step-hidden">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
-                <h2 class="text-3xl font-semibold text-slate-800 mb-4">Contexto y Estadísticas del Protocolo Remoto</h2>
+                <h2 class="text-3xl font-semibold text-slate-800 mb-4">Antes de iniciar la solicitud</h2>
                 <p class="text-slate-600 mb-8 leading-relaxed text-lg">
                     La Resolución CM Nº 65/2020 habilitó la tramitación remota de las causas y el MEMO 77-2020
-                    reglamenta el sistema de virtualidad en las mediaciones. Los gráficos muestran las modalidades
-                    de trámite y la efectividad proyectada del proceso, como referencia antes de iniciar una solicitud.
+                    reglamenta el sistema de virtualidad en las mediaciones. Esta herramienta ordena los datos y
+                    permite enviar la solicitud desde esta plataforma utilizando la cuenta institucional de la persona usuaria.
                 </p>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div class="flex flex-col items-center bg-slate-50 p-6 rounded-lg border border-slate-100">
-                        <h3 class="text-lg font-medium text-slate-700 mb-4 text-center">Modalidad de Trámites Requerida</h3>
-                        <div class="chart-container">
-                            <canvas id="chartModalidad"></canvas>
-                        </div>
-                        <p class="text-sm text-slate-500 mt-4 text-center max-w-sm">Distribución de las solicitudes según el MEMO 77-2020, destacando la adopción del sistema virtual.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                        <p class="text-sm font-semibold text-blue-700 mb-2">1. Complete</p>
+                        <h3 class="text-lg font-medium text-slate-800 mb-2">Datos de la causa</h3>
+                        <p class="text-sm text-slate-600">Ingrese la carátula, el objeto, las partes, la representación y el contacto de Fiscalía.</p>
                     </div>
-                    <div class="flex flex-col items-center bg-slate-50 p-6 rounded-lg border border-slate-100">
-                        <h3 class="text-lg font-medium text-slate-700 mb-4 text-center">Efectividad de la Mediación (Proyectada)</h3>
-                        <div class="chart-container">
-                            <canvas id="chartEfectividad"></canvas>
-                        </div>
-                        <p class="text-sm text-slate-500 mt-4 text-center max-w-sm">Tasa de acuerdos alcanzados a través de canales virtuales vs. presenciales.</p>
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                        <p class="text-sm font-semibold text-blue-700 mb-2">2. Revise</p>
+                        <h3 class="text-lg font-medium text-slate-800 mb-2">Vista previa</h3>
+                        <p class="text-sm text-slate-600">Controle el texto generado y corrija los campos señalados antes de continuar.</p>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                        <p class="text-sm font-semibold text-blue-700 mb-2">3. Confirme</p>
+                        <h3 class="text-lg font-medium text-slate-800 mb-2">Envío institucional</h3>
+                        <p class="text-sm text-slate-600">Inicie sesión con Microsoft 365, confirme el destinatario y envíe la solicitud desde la misma plataforma.</p>
                     </div>
                 </div>
             </div>
@@ -90,9 +78,12 @@
                 <h2 class="text-3xl font-semibold text-slate-800 mb-4">Asistente Interactivo de Solicitud</h2>
                 <p class="text-slate-600 leading-relaxed text-lg">
                     Complete los cuatro pasos con los datos exigidos por el protocolo de actuación. El sistema
-                    genera en tiempo real el texto de la solicitud, listo para enviar a
-                    <strong>mediaciononline@jusbaires.gob.ar</strong>.
+                    genera en tiempo real el texto de la solicitud y permite enviarlo directamente a
+                    <strong data-recipient></strong>.
                 </p>
+                <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                    <strong>Envío seguro:</strong> Microsoft 365 solicitará iniciar sesión con una cuenta institucional. La plataforma sólo enviará después de la confirmación expresa de la persona usuaria.
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -110,7 +101,7 @@
                         <span id="stepCounter" class="text-sm font-medium text-slate-500 uppercase tracking-wider">Paso 1 de 4</span>
                     </div>
 
-                    <form id="mediationForm" onsubmit="event.preventDefault();">
+                    <form id="mediationForm" novalidate>
 
                         <!-- PASO 1: Datos de la causa -->
                         <div id="step1" class="wizard-step step-active">
@@ -118,15 +109,15 @@
                             <div class="space-y-5">
                                 <div>
                                     <label for="caratula" class="block text-sm font-semibold text-slate-700 mb-1">Carátula de la Causa <span class="text-red-500">*</span></label>
-                                    <input type="text" id="caratula" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="Ej. LÓPEZ C/ PÉREZ S/ DAÑOS">
+                                    <input type="text" id="caratula" required autocomplete="off" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="Ej. LÓPEZ C/ PÉREZ S/ DAÑOS">
                                 </div>
                                 <div>
                                     <label for="objeto" class="block text-sm font-semibold text-slate-700 mb-1">Objeto de autos (DDH) <span class="text-red-500">*</span> <span class="text-xs text-slate-400 font-normal">(Imprescindible)</span></label>
-                                    <input type="text" id="objeto" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="Detalle el objeto">
+                                    <input type="text" id="objeto" required autocomplete="off" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" placeholder="Detalle el objeto">
                                 </div>
                                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-6">
                                     <label class="flex items-start cursor-pointer">
-                                        <input type="checkbox" id="voluntad" class="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                        <input type="checkbox" id="voluntad" required class="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                                         <span class="ml-3 text-sm text-slate-700">Dejo expresa constancia de la <strong>voluntad de las partes</strong> para realizar el proceso de mediación o conciliación. <span class="text-red-500">*</span></span>
                                     </label>
                                 </div>
@@ -181,10 +172,10 @@
 
                                 <div class="bg-amber-50 p-5 rounded-lg border border-amber-200">
                                     <div class="flex items-center justify-between mb-4">
-                                        <label class="block text-sm font-semibold text-slate-800">¿Hay menores involucrados en la causa?</label>
+                                        <label for="hasMinors" class="block text-sm font-semibold text-slate-800">¿Hay menores involucrados en la causa?</label>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="hasMinors" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                            <span class="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></span>
                                         </label>
                                     </div>
 
@@ -245,9 +236,10 @@
                         </div>
 
                         <!-- Navegación -->
+                        <div id="formMessage" class="hidden mt-8 rounded-lg border px-4 py-3 text-sm" role="alert" aria-live="assertive"></div>
                         <div class="flex justify-between items-center mt-10 pt-6 border-t border-slate-100">
                             <button type="button" id="btnPrev" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-colors invisible">&#8592; Anterior</button>
-                            <button type="button" id="btnNext" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Siguiente &#8594;</button>
+                            <button type="submit" id="btnNext" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Siguiente &#8594;</button>
                         </div>
                     </form>
                 </div>
@@ -257,18 +249,32 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="bg-slate-800 text-white px-5 py-3 flex justify-between items-center">
                             <h3 class="font-semibold text-sm uppercase tracking-wider">Solicitud generada</h3>
-                            <span class="text-xs text-slate-300">mediaciononline@jusbaires.gob.ar</span>
+                            <span class="text-xs text-slate-300" data-recipient></span>
                         </div>
-                        <div id="checklist" class="px-5 py-3 border-b border-slate-100 text-xs space-y-1"></div>
-                        <pre id="preview" class="custom-scrollbar whitespace-pre-wrap font-mono text-xs text-slate-700 p-5 max-h-[50vh] overflow-y-auto leading-relaxed"></pre>
+                        <div id="checklist" class="px-5 py-3 border-b border-slate-100 text-xs space-y-1" role="status" aria-live="polite"></div>
+                        <pre id="preview" class="custom-scrollbar whitespace-pre-wrap font-mono text-xs text-slate-700 p-5 max-h-[50vh] overflow-y-auto leading-relaxed" tabindex="0" aria-label="Vista previa de la solicitud"></pre>
                     </div>
+                    <div class="rounded-xl border border-slate-200 bg-white p-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cuenta de envío</p>
+                                <p id="authStatus" class="text-sm text-slate-700" aria-live="polite">Comprobando sesión institucional…</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" id="btnSignIn" class="hidden px-3 py-2 rounded-lg border border-blue-300 text-blue-700 font-medium hover:bg-blue-50 text-sm">Iniciar sesión</button>
+                                <button type="button" id="btnSignOut" class="hidden px-3 py-2 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 text-sm">Cerrar sesión</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="btnSend" class="w-full px-4 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors text-sm">Enviar solicitud</button>
+                    <div id="sendStatus" class="hidden rounded-lg border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
                     <div class="flex gap-3">
                         <button type="button" id="btnCopy" class="flex-1 px-4 py-3 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors text-sm">Copiar texto</button>
-                        <a id="btnMail" href="#" class="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors text-sm text-center">Abrir en correo</a>
+                        <button type="button" id="btnMail" class="flex-1 px-4 py-3 rounded-lg border border-blue-300 bg-white text-blue-700 font-medium hover:bg-blue-50 transition-colors text-sm text-center">Abrir en correo</button>
                     </div>
                     <p class="text-xs text-slate-500 leading-relaxed">
-                        Protocolo de actuación previsto en la Res. CM Nº 65/2020 y MEMO 77-2020. Verifique que los campos
-                        marcados como imprescindibles estén completos antes de enviar.
+                        Protocolo de actuación previsto en la Res. CM Nº 65/2020 y MEMO 77-2020. Los datos ingresados
+                        permanecen en esta pestaña y se transmiten a Microsoft Graph únicamente al confirmar el envío.
                     </p>
                 </div>
             </div>
@@ -287,9 +293,134 @@
         var currentStep = 1;
         var TOTAL_STEPS = 4;
         var partyCount = 0;
-        var chartsInitialized = false;
+        var RECIPIENT_EMAIL = 'mediaciononline@jusbaires.gob.ar';
+        var ENTRA_CLIENT_ID = '9b1ba58a-5fc4-4f13-934e-4656c54dd821';
+        var ENTRA_TENANT_ID = '8e643b8b-b7de-4008-8503-d74eb8b64e7e';
+        var REDIRECT_URI = 'https://tegralan.github.io/MEDIACION/';
+        var GRAPH_SEND_MAIL_ENDPOINT = 'https://graph.microsoft.com/v1.0/me/sendMail';
+        var GRAPH_SCOPES = ['User.Read', 'Mail.Send'];
+        var msalClient = null;
+        var sentContent = null;
 
         var $ = function (id) { return document.getElementById(id); };
+
+        /* ---------- Autenticación institucional ---------- */
+        function currentAccount() {
+            if (!msalClient) return null;
+            return msalClient.getActiveAccount() || msalClient.getAllAccounts()[0] || null;
+        }
+
+        function updateAuthUI(account, errorMessage) {
+            if (errorMessage) {
+                $('authStatus').textContent = errorMessage;
+                $('authStatus').className = 'text-sm text-red-700';
+                $('btnSignIn').classList.remove('hidden');
+                $('btnSignOut').classList.add('hidden');
+                return;
+            }
+            if (account) {
+                $('authStatus').textContent = 'Sesión iniciada: ' + account.username;
+                $('authStatus').className = 'text-sm font-medium text-green-700';
+                $('btnSignIn').classList.add('hidden');
+                $('btnSignOut').classList.remove('hidden');
+            } else {
+                $('authStatus').textContent = 'Inicie sesión con su cuenta @jusbaires.gob.ar para enviar.';
+                $('authStatus').className = 'text-sm text-slate-700';
+                $('btnSignIn').classList.remove('hidden');
+                $('btnSignOut').classList.add('hidden');
+            }
+        }
+
+        async function initializeAuthentication() {
+            if (typeof msal === 'undefined') {
+                updateAuthUI(null, 'No se pudo cargar la autenticación de Microsoft. Recargue la página.');
+                $('btnSend').disabled = true;
+                return;
+            }
+            try {
+                msalClient = new msal.PublicClientApplication({
+                    auth: {
+                        clientId: ENTRA_CLIENT_ID,
+                        authority: 'https://login.microsoftonline.com/' + ENTRA_TENANT_ID,
+                        redirectUri: REDIRECT_URI,
+                        postLogoutRedirectUri: REDIRECT_URI,
+                        navigateToLoginRequestUrl: false
+                    },
+                    cache: {
+                        cacheLocation: 'sessionStorage',
+                        storeAuthStateInCookie: false
+                    }
+                });
+                await msalClient.initialize();
+                var account = currentAccount();
+                if (account) msalClient.setActiveAccount(account);
+                updateAuthUI(account);
+            } catch (error) {
+                updateAuthUI(null, 'No se pudo iniciar Microsoft 365. Recargue la página.');
+                $('btnSend').disabled = true;
+            }
+        }
+
+        async function signIn() {
+            if (!msalClient) {
+                updateAuthUI(null, 'Microsoft 365 todavía no está disponible. Recargue la página.');
+                return null;
+            }
+            $('btnSignIn').disabled = true;
+            $('authStatus').textContent = 'Abriendo inicio de sesión de Microsoft 365…';
+            try {
+                var response = await msalClient.loginPopup({
+                    scopes: GRAPH_SCOPES,
+                    prompt: 'select_account'
+                });
+                msalClient.setActiveAccount(response.account);
+                updateAuthUI(response.account);
+                return response.account;
+            } catch (error) {
+                var cancelled = error && (error.errorCode === 'user_cancelled' || error.errorCode === 'popup_window_error');
+                updateAuthUI(null, cancelled
+                    ? 'Inicio de sesión cancelado. Puede volver a intentarlo.'
+                    : 'No se pudo iniciar sesión. Verifique su cuenta institucional.');
+                return null;
+            } finally {
+                $('btnSignIn').disabled = false;
+            }
+        }
+
+        async function accessTokenForMail(account) {
+            var request = { scopes: GRAPH_SCOPES, account: account };
+            try {
+                return (await msalClient.acquireTokenSilent(request)).accessToken;
+            } catch (error) {
+                return (await msalClient.acquireTokenPopup(request)).accessToken;
+            }
+        }
+
+        async function signOut() {
+            var account = currentAccount();
+            if (!account || !msalClient) return;
+            try {
+                await msalClient.logoutPopup({
+                    account: account,
+                    postLogoutRedirectUri: REDIRECT_URI
+                });
+                msalClient.setActiveAccount(null);
+                updateAuthUI(null);
+            } catch (error) {
+                setSendStatus('error', 'No se pudo cerrar la sesión. Cierre esta pestaña al terminar.');
+            }
+        }
+
+        function setSendStatus(type, message) {
+            var box = $('sendStatus');
+            var success = type === 'success';
+            var info = type === 'info';
+            box.className = 'rounded-lg border px-4 py-3 text-sm ' +
+                (success
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : (info ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-red-200 bg-red-50 text-red-800'));
+            box.textContent = message;
+        }
 
         /* ---------- Navegación superior ---------- */
         function showSection(name) {
@@ -305,7 +436,6 @@
                 wiz.classList.remove('step-active'); wiz.classList.add('step-hidden');
                 navD.className = 'nav-btn hover:text-blue-400 transition-colors pb-1 border-b-2 ' + active;
                 navW.className = 'nav-btn hover:text-blue-400 transition-colors pb-1 border-b-2 ' + inactive;
-                initCharts();
             } else {
                 wiz.classList.remove('step-hidden'); wiz.classList.add('step-active');
                 dash.classList.remove('step-active'); dash.classList.add('step-hidden');
@@ -316,49 +446,6 @@
 
         $('navDashboard').addEventListener('click', function () { showSection('dashboard'); });
         $('navWizard').addEventListener('click', function () { showSection('wizard'); });
-
-        /* ---------- Gráficos ---------- */
-        function initCharts() {
-            if (chartsInitialized || typeof Chart === 'undefined') return;
-            chartsInitialized = true;
-
-            new Chart($('chartModalidad'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Virtual', 'Presencial', 'Mixta'],
-                    datasets: [{
-                        data: [68, 22, 10],
-                        backgroundColor: ['#2563eb', '#64748b', '#93c5fd'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
-                }
-            });
-
-            new Chart($('chartEfectividad'), {
-                type: 'bar',
-                data: {
-                    labels: ['Virtual', 'Presencial'],
-                    datasets: [{
-                        label: 'Acuerdos alcanzados (%)',
-                        data: [62, 58],
-                        backgroundColor: ['#2563eb', '#64748b'],
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function (v) { return v + '%'; } } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
 
         /* ---------- Partes dinámicas ---------- */
         function partyTitle(i) {
@@ -378,14 +465,14 @@
                 '<h4 class="party-title font-semibold text-slate-700 mb-4 border-b border-slate-200 pb-2">' + partyTitle(i) + '</h4>' +
                 (removable ? '<button type="button" class="btn-remove-party absolute top-4 right-4 text-slate-400 hover:text-red-500 text-lg leading-none" title="Quitar esta parte" aria-label="Quitar esta parte">&#10005;</button>' : '') +
                 '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
-                    '<div><label class="block text-xs font-semibold text-slate-600 mb-1">Nombre y apellido</label>' +
-                    '<input type="text" class="party-name w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
-                    '<div><label class="block text-xs font-semibold text-slate-600 mb-1">DNI / Pasaporte u otro documento</label>' +
-                    '<input type="text" class="party-dni w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
-                    '<div><label class="block text-xs font-semibold text-slate-600 mb-1">Teléfono (fijo/cel) <span class="text-red-500">*</span></label>' +
-                    '<input type="text" class="party-tel w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
-                    '<div><label class="block text-xs font-semibold text-slate-600 mb-1">Correo electrónico</label>' +
-                    '<input type="email" class="party-email w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
+                    '<div><label for="party-name-' + i + '" class="block text-xs font-semibold text-slate-600 mb-1">Nombre y apellido</label>' +
+                    '<input type="text" id="party-name-' + i + '" autocomplete="off" class="party-name w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
+                    '<div><label for="party-dni-' + i + '" class="block text-xs font-semibold text-slate-600 mb-1">DNI / Pasaporte u otro documento</label>' +
+                    '<input type="text" id="party-dni-' + i + '" autocomplete="off" class="party-dni w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
+                    '<div><label for="party-tel-' + i + '" class="block text-xs font-semibold text-slate-600 mb-1">Teléfono (fijo/cel) <span class="text-red-500">*</span></label>' +
+                    '<input type="tel" id="party-tel-' + i + '" required autocomplete="off" class="party-tel w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
+                    '<div><label for="party-email-' + i + '" class="block text-xs font-semibold text-slate-600 mb-1">Correo electrónico</label>' +
+                    '<input type="email" id="party-email-' + i + '" autocomplete="off" class="party-email w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-sm"></div>' +
                 '</div>';
             $('partiesContainer').appendChild(block);
 
@@ -441,20 +528,24 @@
             }
             $('stepCounter').textContent = 'Paso ' + n + ' de ' + TOTAL_STEPS;
             $('btnPrev').classList.toggle('invisible', n === 1);
-            $('btnNext').textContent = (n === TOTAL_STEPS) ? 'Finalizar ✓' : 'Siguiente →';
+            $('btnNext').textContent = (n === TOTAL_STEPS) ? 'Revisar solicitud ✓' : 'Siguiente →';
         }
 
         $('btnPrev').addEventListener('click', function () { goToStep(currentStep - 1); });
-        $('btnNext').addEventListener('click', function () {
-            if (currentStep < TOTAL_STEPS) { goToStep(currentStep + 1); }
-            else {
+        $('mediationForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            var stepErrors = getMissingDetails().filter(function (item) { return item.step === currentStep; });
+            if (stepErrors.length) {
+                showValidation(stepErrors);
+                return;
+            }
+            hideMessage();
+            if (currentStep < TOTAL_STEPS) {
+                goToStep(currentStep + 1);
+            } else {
                 updatePreview();
-                var missing = getMissing();
-                if (missing.length) {
-                    alert('Antes de enviar, complete los datos imprescindibles:\n\n• ' + missing.join('\n• '));
-                } else {
-                    $('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                showMessage('success', 'La solicitud está lista. Revise la vista previa y luego seleccione “Enviar solicitud”.');
+                $('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         });
 
@@ -479,16 +570,59 @@
             return out;
         }
 
-        function getMissing() {
+        function getMissingDetails() {
             var missing = [];
-            if (!val('caratula')) missing.push('Carátula de la causa');
-            if (!val('objeto')) missing.push('Objeto de autos (DDH)');
-            if (!$('voluntad').checked) missing.push('Constancia de voluntad de las partes');
-            var parties = getParties();
-            parties.forEach(function (p) {
-                if (!p.tel) missing.push('Teléfono de ' + p.rol.toLowerCase());
+            function add(step, label, element) {
+                missing.push({ step: step, label: label, element: element });
+            }
+            if (!val('caratula')) add(1, 'Carátula de la causa', $('caratula'));
+            if (!val('objeto')) add(1, 'Objeto de autos (DDH)', $('objeto'));
+            if (!$('voluntad').checked) add(1, 'Constancia de voluntad de las partes', $('voluntad'));
+
+            document.querySelectorAll('#partiesContainer .party-block').forEach(function (block, idx) {
+                var role = partyTitle(idx + 1).toLowerCase();
+                var tel = block.querySelector('.party-tel');
+                var email = block.querySelector('.party-email');
+                if (!tel.value.trim()) add(2, 'Teléfono de ' + role, tel);
+                if (email.value.trim() && !email.validity.valid) add(2, 'Correo válido de ' + role, email);
             });
+
+            if (val('repEmail') && !$('repEmail').validity.valid) add(3, 'Correo válido de la representación legal', $('repEmail'));
+            if (val('fiscaliaEmail') && !$('fiscaliaEmail').validity.valid) add(4, 'Correo válido del contacto de Fiscalía', $('fiscaliaEmail'));
             return missing;
+        }
+
+        function getMissing() {
+            return getMissingDetails().map(function (item) { return item.label; });
+        }
+
+        function hideMessage() {
+            $('formMessage').classList.add('hidden');
+        }
+
+        function showMessage(type, text) {
+            var box = $('formMessage');
+            var success = type === 'success';
+            box.className = 'mt-8 rounded-lg border px-4 py-3 text-sm ' +
+                (success ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800');
+            box.textContent = text;
+        }
+
+        function clearFieldErrors() {
+            document.querySelectorAll('.field-error').forEach(function (field) {
+                field.classList.remove('field-error');
+                field.removeAttribute('aria-invalid');
+            });
+        }
+
+        function showValidation(details) {
+            clearFieldErrors();
+            details.forEach(function (item) {
+                item.element.classList.add('field-error');
+                item.element.setAttribute('aria-invalid', 'true');
+            });
+            showMessage('error', 'Revise los campos señalados: ' + details.map(function (item) { return item.label; }).join('; ') + '.');
+            details[0].element.focus();
         }
 
         /* ---------- Generación del texto ---------- */
@@ -553,11 +687,102 @@
                     }).join('');
             }
 
-            var subject = 'Solicitud de mediación - ' + (val('caratula') || 'sin carátula');
-            $('btnMail').href = 'mailto:mlanger@jusbaires.gob.ar' +
+            $('btnMail').setAttribute('aria-describedby', 'checklist');
+            $('btnSend').setAttribute('aria-describedby', 'checklist');
+        }
+
+        async function sendForm() {
+            var details = getMissingDetails();
+            if (details.length) {
+                goToStep(details[0].step);
+                showValidation(details.filter(function (item) { return item.step === details[0].step; }));
+                return;
+            }
+
+            var account = currentAccount() || await signIn();
+            if (!account) return;
+
+            var confirmed = window.confirm(
+                'Se enviará la solicitud desde ' + account.username + ' a ' + RECIPIENT_EMAIL + '.\n\n¿Confirma el envío?'
+            );
+            if (!confirmed) {
+                setSendStatus('error', 'El envío fue cancelado. No se transmitió ningún dato.');
+                return;
+            }
+
+            var button = $('btnSend');
+            var originalLabel = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Enviando…';
+            setSendStatus('info', 'Enviando la solicitud mediante Microsoft 365…');
+
+            try {
+                var token = await accessTokenForMail(account);
+                var text = buildText();
+                var response = await fetch(GRAPH_SEND_MAIL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: {
+                            subject: 'Solicitud de mediación - ' + val('caratula'),
+                            body: {
+                                contentType: 'Text',
+                                content: text
+                            },
+                            toRecipients: [{
+                                emailAddress: { address: RECIPIENT_EMAIL }
+                            }]
+                        },
+                        saveToSentItems: true
+                    })
+                });
+
+                if (response.status !== 202) {
+                    var graphError = null;
+                    try { graphError = await response.json(); } catch (ignore) { graphError = null; }
+                    var code = graphError && graphError.error && graphError.error.code;
+                    if (response.status === 403) throw new Error('permission');
+                    if (response.status === 401) throw new Error('authentication');
+                    throw new Error(code || 'graph');
+                }
+
+                sentContent = text;
+                button.textContent = '✓ Solicitud enviada';
+                setSendStatus('success', 'Microsoft 365 aceptó el envío. El mensaje quedó registrado en la carpeta “Enviados” de ' + account.username + '.');
+            } catch (error) {
+                button.disabled = false;
+                button.textContent = originalLabel;
+                if (error && error.message === 'permission') {
+                    setSendStatus('error', 'Microsoft 365 rechazó el permiso de envío. Cierre sesión, vuelva a ingresar y acepte Mail.Send.');
+                } else if (error && error.message === 'authentication') {
+                    setSendStatus('error', 'La sesión venció. Cierre sesión e ingrese nuevamente antes de reintentar.');
+                } else {
+                    setSendStatus('error', 'No se pudo enviar la solicitud. No vuelva a presionar el botón hasta verificar su conexión; también puede usar “Abrir en correo”.');
+                }
+            }
+        }
+
+        $('btnSignIn').addEventListener('click', signIn);
+        $('btnSignOut').addEventListener('click', signOut);
+        $('btnSend').addEventListener('click', sendForm);
+
+        $('btnMail').addEventListener('click', function () {
+            var details = getMissingDetails();
+            if (details.length) {
+                goToStep(details[0].step);
+                showValidation(details.filter(function (item) { return item.step === details[0].step; }));
+                return;
+            }
+            var subject = 'Solicitud de mediación - ' + val('caratula');
+            var mailto = 'mailto:' + RECIPIENT_EMAIL +
                 '?subject=' + encodeURIComponent(subject) +
                 '&body=' + encodeURIComponent(buildText());
-        }
+            showMessage('success', 'Se abrirá un borrador como alternativa manual. Revise el contenido antes de enviarlo.');
+            window.location.href = mailto;
+        });
 
         $('btnCopy').addEventListener('click', function () {
             var btn = this;
@@ -579,15 +804,38 @@
             }
         });
 
+        function resetSentStateIfEdited() {
+            if (sentContent !== null && buildText() !== sentContent) {
+                sentContent = null;
+                $('btnSend').disabled = false;
+                $('btnSend').textContent = 'Enviar solicitud';
+                $('sendStatus').classList.add('hidden');
+            }
+        }
+
         /* ---------- Actualización en tiempo real ---------- */
         document.addEventListener('input', function (e) {
-            if (e.target.closest('#mediationForm')) updatePreview();
+            if (e.target.closest('#mediationForm')) {
+                e.target.classList.remove('field-error');
+                e.target.removeAttribute('aria-invalid');
+                updatePreview();
+                resetSentStateIfEdited();
+            }
         });
         document.addEventListener('change', function (e) {
-            if (e.target.closest('#mediationForm')) updatePreview();
+            if (e.target.closest('#mediationForm')) {
+                e.target.classList.remove('field-error');
+                e.target.removeAttribute('aria-invalid');
+                updatePreview();
+                resetSentStateIfEdited();
+            }
         });
 
         /* ---------- Inicialización ---------- */
+        document.querySelectorAll('[data-recipient]').forEach(function (element) {
+            element.textContent = RECIPIENT_EMAIL;
+        });
+        initializeAuthentication();
         addParty(); // Requiriente
         addParty(); // Requerida
         goToStep(1);
